@@ -142,7 +142,7 @@ df = pd.read_csv('pull_requests_all.csv')
 existing_url = pd.read_csv('pull_request_comments_commits_codeowners_integrations.csv')['Pull Request URL'].unique()
 # skip over PRs that already have their comments and commit messages mined
 df = df[~df['URL'].isin(existing_url)]
-
+bad_prs = []
 # Iterate through pull requests
 for url in df['URL']:
     # Extract pull request number from the URL
@@ -158,6 +158,9 @@ for url in df['URL']:
 
     # Fetch PR author, comments, and commit details
     author = fetch_pr_author(pr_url)
+    if author is None:
+        bad_prs.append(url)
+        continue
     comments = fetch_comments(issue_comments_url, review_comments_url)
     commits = fetch_commit_details(commit_url)
 
@@ -183,3 +186,6 @@ for url in df['URL']:
 # Save remaining data in the buffer
 save_buffered_data()
 print(f"Comments and commit details with code owner information saved to pull_request_comments_commits_codeowners.csv")
+with open("bad_prs.txt", "w") as file:
+    for item in bad_prs:
+        file.write(f"{item}\n")
