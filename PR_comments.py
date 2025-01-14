@@ -3,6 +3,7 @@ import pandas as pd
 import csv
 import os
 import time
+from dotenv import load_dotenv
 from datetime import datetime, timezone
 FIELDNAMES = [
     "Comment Type", "User", "Comment", "Date", 
@@ -10,9 +11,16 @@ FIELDNAMES = [
     "Pull Request URL", "Is Code Owner", "Author Is Code Owner"
 ]
 
-# List of tokens for rotation
-tokens = [
-]  # Replace with your tokens
+load_dotenv()
+
+
+
+tokens = []  # Replace with your tokens
+
+for key, value in os.environ.items():
+    if key.startswith('GITHUB'):
+        tokens.append(value)
+
 current_token_index = 0
 
 # Buffer and batch size
@@ -62,7 +70,6 @@ def save_buffered_data():
             writer.writerows(normalized_buffer)  # Write all buffered rows
         buffer.clear()  # Clear the buffer after saving
         print("Checkpoint: Data saved.")
-
 
 # Fetch functions
 def fetch_comments(issue_url, review_url):
@@ -131,7 +138,10 @@ codeowners_file = "CODEOWNERS.txt"  # Replace with the path to your CODEOWNERS.t
 codeowners = load_codeowners(codeowners_file)
 
 # Load pull requests from CSV
-df = pd.read_csv('pull_requests_complex_integrations.csv')
+df = pd.read_csv('pull_requests_all.csv')
+existing_url = pd.read_csv('pull_request_comments_commits_codeowners_integrations.csv')['Pull Request URL'].unique()
+# skip over PRs that already have their comments and commit messages mined
+df = df[~df['URL'].isin(existing_url)]
 
 # Iterate through pull requests
 for url in df['URL']:
